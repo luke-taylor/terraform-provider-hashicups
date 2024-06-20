@@ -3,31 +3,35 @@ package provider
 import (
   "context"
 
+  "github.com/hashicorp-demoapp/hashicups-client-go"
   "github.com/hashicorp/terraform-plugin-framework/datasource"
   "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
+
 // Ensure the implementation satisfies the expected interfaces.
 var (
-  _ datasource.DataSource = &coffeesDataSource{}
+	_ datasource.DataSource = &coffeesDataSource{}
 )
 
 // NewCoffeesDataSource is a helper function to simplify the provider implementation.
 func NewCoffeesDataSource() datasource.DataSource {
-  return &coffeesDataSource{}
+	return &coffeesDataSource{}
 }
 
 // coffeesDataSource is the data source implementation.
-type coffeesDataSource struct{}
+type coffeesDataSource struct {
+	client *hashicups.Client
+}
 
 // Metadata returns the data source type name.
 func (d *coffeesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-  resp.TypeName = req.ProviderTypeName + "_coffees"
+	resp.TypeName = req.ProviderTypeName + "_coffees"
 }
 
 // Schema defines the schema for the data source.
 func (d *coffeesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-  resp.Schema = schema.Schema{}
+	resp.Schema = schema.Schema{}
 }
 
 // Read refreshes the Terraform state with the latest data.
