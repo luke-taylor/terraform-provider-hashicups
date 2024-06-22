@@ -3,11 +3,13 @@ package provider
 import (
 	"context"
 	"fmt"
-
+  
 	"github.com/hashicorp-demoapp/hashicups-client-go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-)
+	"github.com/hashicorp/terraform-plugin-framework/types"
+  )
+  
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
@@ -33,46 +35,45 @@ func (d *coffeesDataSource) Metadata(_ context.Context, req datasource.MetadataR
 // Schema defines the schema for the data source.
 func (d *coffeesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-	  Attributes: map[string]schema.Attribute{
-		"coffees": schema.ListNestedAttribute{
-		  Computed: true,
-		  NestedObject: schema.NestedAttributeObject{
-			Attributes: map[string]schema.Attribute{
-			  "id": schema.Int64Attribute{
-				Computed: true,
-			  },
-			  "name": schema.StringAttribute{
-				Computed: true,
-			  },
-			  "teaser": schema.StringAttribute{
-				Computed: true,
-			  },
-			  "description": schema.StringAttribute{
-				Computed: true,
-			  },
-			  "price": schema.Float64Attribute{
-				Computed: true,
-			  },
-			  "image": schema.StringAttribute{
-				Computed: true,
-			  },
-			  "ingredients": schema.ListNestedAttribute{
+		Attributes: map[string]schema.Attribute{
+			"coffees": schema.ListNestedAttribute{
 				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
-				  Attributes: map[string]schema.Attribute{
-					"id": schema.Int64Attribute{
-					  Computed: true,
+					Attributes: map[string]schema.Attribute{
+						"id": schema.Int64Attribute{
+							Computed: true,
+						},
+						"name": schema.StringAttribute{
+							Computed: true,
+						},
+						"teaser": schema.StringAttribute{
+							Computed: true,
+						},
+						"description": schema.StringAttribute{
+							Computed: true,
+						},
+						"price": schema.Float64Attribute{
+							Computed: true,
+						},
+						"image": schema.StringAttribute{
+							Computed: true,
+						},
+						"ingredients": schema.ListNestedAttribute{
+							Computed: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"id": schema.Int64Attribute{
+										Computed: true,
+									},
+								},
+							},
+						},
 					},
-				  },
 				},
-			  },
 			},
-		  },
 		},
-	  },
 	}
-  }
-  
+}
 
 // Read refreshes the Terraform state with the latest data.
 func (d *coffeesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -97,4 +98,25 @@ func (d *coffeesDataSource) Configure(_ context.Context, req datasource.Configur
 	}
 
 	d.client = client
+}
+
+// coffeesDataSourceModel maps the data source schema data.
+type coffeesDataSourceModel struct {
+	Coffees []coffeesModel `tfsdk:"coffees"`
+}
+
+// coffeesModel maps coffees schema data.
+type coffeesModel struct {
+	ID          types.Int64               `tfsdk:"id"`
+	Name        types.String              `tfsdk:"name"`
+	Teaser      types.String              `tfsdk:"teaser"`
+	Description types.String              `tfsdk:"description"`
+	Price       types.Float64             `tfsdk:"price"`
+	Image       types.String              `tfsdk:"image"`
+	Ingredients []coffeesIngredientsModel `tfsdk:"ingredients"`
+}
+
+// coffeesIngredientsModel maps coffee ingredients data
+type coffeesIngredientsModel struct {
+	ID types.Int64 `tfsdk:"id"`
 }
