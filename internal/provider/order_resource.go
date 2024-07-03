@@ -33,8 +33,51 @@ func (r *orderResource) Metadata(_ context.Context, req resource.MetadataRequest
 
 // Schema defines the schema for the resource.
 func (r *orderResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-    resp.Schema = schema.Schema{}
+    resp.Schema = schema.Schema{
+        Attributes: map[string]schema.Attribute{
+            "id": schema.StringAttribute{
+                Computed: true,
+            },
+            "last_updated": schema.StringAttribute{
+                Computed: true,
+            },
+            "items": schema.ListNestedAttribute{
+                Required: true,
+                NestedObject: schema.NestedAttributeObject{
+                    Attributes: map[string]schema.Attribute{
+                        "quantity": schema.Int64Attribute{
+                            Required: true,
+                        },
+                        "coffee": schema.SingleNestedAttribute{
+                            Required: true,
+                            Attributes: map[string]schema.Attribute{
+                                "id": schema.Int64Attribute{
+                                    Required: true,
+                                },
+                                "name": schema.StringAttribute{
+                                    Computed: true,
+                                },
+                                "teaser": schema.StringAttribute{
+                                    Computed: true,
+                                },
+                                "description": schema.StringAttribute{
+                                    Computed: true,
+                                },
+                                "price": schema.Float64Attribute{
+                                    Computed: true,
+                                },
+                                "image": schema.StringAttribute{
+                                    Computed: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    }
 }
+
 
 // Configure adds the provider configured client to the resource.
 func (r *orderResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
