@@ -182,9 +182,50 @@ func (r *orderResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 }
 
-// Read refreshes the Terraform state with the latest data.
+// Read resource information.
 func (r *orderResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-}
+	// Get current state
+			var state orderResourceModel
+			diags := req.State.Get(ctx, &state)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+					return
+			}
+	
+			// Get refreshed order value from HashiCups
+			order, err := r.client.GetOrder(state.ID.ValueString())
+			if err != nil {
+					resp.Diagnostics.AddError(
+							"Error Reading HashiCups Order",
+							"Could not read HashiCups order ID "+state.ID.ValueString()+": "+err.Error(),
+					)
+					return
+			}
+	
+			// Overwrite items with refreshed state
+			state.Items = []orderItemModel{}
+			for _, item := range order.Items {
+					state.Items = append(state.Items, orderItemModel{
+							Coffee: orderItemCoffeeModel{
+									ID:          types.Int64Value(int64(item.Coffee.ID)),
+									Name:        types.StringValue(item.Coffee.Name),
+									Teaser:      types.StringValue(item.Coffee.Teaser),
+									Description: types.StringValue(item.Coffee.Description),
+									Price:       types.Float64Value(item.Coffee.Price),
+									Image:       types.StringValue(item.Coffee.Image),
+							},
+							Quantity: types.Int64Value(int64(item.Quantity)),
+					})
+			}
+	
+			// Set refreshed state
+			diags = resp.State.Set(ctx, &state)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+					return
+			}
+	}
+	
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *orderResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
