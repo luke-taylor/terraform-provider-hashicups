@@ -1,15 +1,17 @@
 package provider
 
 import (
-    "context"
-    "fmt"
-    "strconv"
-    "time"
+	"context"
+	"fmt"
+	"strconv"
+	"time"
 
-    "github.com/hashicorp-demoapp/hashicups-client-go"
-    "github.com/hashicorp/terraform-plugin-framework/resource"
-    "github.com/hashicorp/terraform-plugin-framework/resource/schema"
-    "github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp-demoapp/hashicups-client-go"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 
@@ -40,6 +42,9 @@ func (r *orderResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"last_updated": schema.StringAttribute{
 				Computed: true,
@@ -294,4 +299,22 @@ func (r *orderResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *orderResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-}
+	// Retrieve values from state
+			var state orderResourceModel
+			diags := req.State.Get(ctx, &state)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+					return
+			}
+	
+			// Delete existing order
+			err := r.client.DeleteOrder(state.ID.ValueString())
+			if err != nil {
+					resp.Diagnostics.AddError(
+							"Error Deleting HashiCups Order",
+							"Could not delete order, unexpected error: "+err.Error(),
+					)
+					return
+			}
+	}
+	
