@@ -1,22 +1,25 @@
 package provider
 
 import (
-    "context"
-    "os"
+	"context"
+	"os"
 
-    "github.com/hashicorp-demoapp/hashicups-client-go"
-    "github.com/hashicorp/terraform-plugin-framework/datasource"
-    "github.com/hashicorp/terraform-plugin-framework/path"
-    "github.com/hashicorp/terraform-plugin-framework/provider"
-    "github.com/hashicorp/terraform-plugin-framework/provider/schema"
-    "github.com/hashicorp/terraform-plugin-framework/resource"
-    "github.com/hashicorp/terraform-plugin-framework/types"
-    "github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp-demoapp/hashicups-client-go"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/function"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
+
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ provider.Provider = &hashicupsProvider{}
+	_ provider.Provider              = &hashicupsProvider{}
+	_ provider.ProviderWithFunctions = &hashicupsProvider{}
 )
 
 // New is a helper function to simplify provider server and testing implementation.
@@ -194,6 +197,12 @@ func (p *hashicupsProvider) DataSources(_ context.Context) []func() datasource.D
 // Resources defines the resources implemented in the provider.
 func (p *hashicupsProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-			NewOrderResource,
+		NewOrderResource,
+	}
+}
+
+func (p *hashicupsProvider) Functions(_ context.Context) []func() function.Function {
+	return []func() function.Function{
+		NewComputeTaxFunction,
 	}
 }

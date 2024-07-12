@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp-demoapp/hashicups-client-go"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -14,11 +15,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &orderResource{}
-	_ resource.ResourceWithConfigure = &orderResource{}
+	_ resource.Resource                = &orderResource{}
+	_ resource.ResourceWithConfigure   = &orderResource{}
+	_ resource.ResourceWithImportState = &orderResource{}
 )
 
 // NewOrderResource is a helper function to simplify the provider implementation.
@@ -190,131 +191,134 @@ func (r *orderResource) Create(ctx context.Context, req resource.CreateRequest, 
 // Read resource information.
 func (r *orderResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
-			var state orderResourceModel
-			diags := req.State.Get(ctx, &state)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-					return
-			}
-	
-			// Get refreshed order value from HashiCups
-			order, err := r.client.GetOrder(state.ID.ValueString())
-			if err != nil {
-					resp.Diagnostics.AddError(
-							"Error Reading HashiCups Order",
-							"Could not read HashiCups order ID "+state.ID.ValueString()+": "+err.Error(),
-					)
-					return
-			}
-	
-			// Overwrite items with refreshed state
-			state.Items = []orderItemModel{}
-			for _, item := range order.Items {
-					state.Items = append(state.Items, orderItemModel{
-							Coffee: orderItemCoffeeModel{
-									ID:          types.Int64Value(int64(item.Coffee.ID)),
-									Name:        types.StringValue(item.Coffee.Name),
-									Teaser:      types.StringValue(item.Coffee.Teaser),
-									Description: types.StringValue(item.Coffee.Description),
-									Price:       types.Float64Value(item.Coffee.Price),
-									Image:       types.StringValue(item.Coffee.Image),
-							},
-							Quantity: types.Int64Value(int64(item.Quantity)),
-					})
-			}
-	
-			// Set refreshed state
-			diags = resp.State.Set(ctx, &state)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-					return
-			}
+	var state orderResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	
 
-	func (r *orderResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-    // Retrieve values from plan
-    var plan orderResourceModel
-    diags := req.Plan.Get(ctx, &plan)
-    resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() {
-        return
-    }
+	// Get refreshed order value from HashiCups
+	order, err := r.client.GetOrder(state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading HashiCups Order",
+			"Could not read HashiCups order ID "+state.ID.ValueString()+": "+err.Error(),
+		)
+		return
+	}
 
-    // Generate API request body from plan
-    var hashicupsItems []hashicups.OrderItem
-    for _, item := range plan.Items {
-        hashicupsItems = append(hashicupsItems, hashicups.OrderItem{
-            Coffee: hashicups.Coffee{
-                ID: int(item.Coffee.ID.ValueInt64()),
-            },
-            Quantity: int(item.Quantity.ValueInt64()),
-        })
-    }
+	// Overwrite items with refreshed state
+	state.Items = []orderItemModel{}
+	for _, item := range order.Items {
+		state.Items = append(state.Items, orderItemModel{
+			Coffee: orderItemCoffeeModel{
+				ID:          types.Int64Value(int64(item.Coffee.ID)),
+				Name:        types.StringValue(item.Coffee.Name),
+				Teaser:      types.StringValue(item.Coffee.Teaser),
+				Description: types.StringValue(item.Coffee.Description),
+				Price:       types.Float64Value(item.Coffee.Price),
+				Image:       types.StringValue(item.Coffee.Image),
+			},
+			Quantity: types.Int64Value(int64(item.Quantity)),
+		})
+	}
 
-    // Update existing order
-    _, err := r.client.UpdateOrder(plan.ID.ValueString(), hashicupsItems)
-    if err != nil {
-        resp.Diagnostics.AddError(
-            "Error Updating HashiCups Order",
-            "Could not update order, unexpected error: "+err.Error(),
-        )
-        return
-    }
+	// Set refreshed state
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+}
 
-    // Fetch updated items from GetOrder as UpdateOrder items are not
-    // populated.
-    order, err := r.client.GetOrder(plan.ID.ValueString())
-    if err != nil {
-        resp.Diagnostics.AddError(
-            "Error Reading HashiCups Order",
-            "Could not read HashiCups order ID "+plan.ID.ValueString()+": "+err.Error(),
-        )
-        return
-    }
+func (r *orderResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Retrieve values from plan
+	var plan orderResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-    // Update resource state with updated items and timestamp
-    plan.Items = []orderItemModel{}
-    for _, item := range order.Items {
-        plan.Items = append(plan.Items, orderItemModel{
-            Coffee: orderItemCoffeeModel{
-                ID:          types.Int64Value(int64(item.Coffee.ID)),
-                Name:        types.StringValue(item.Coffee.Name),
-                Teaser:      types.StringValue(item.Coffee.Teaser),
-                Description: types.StringValue(item.Coffee.Description),
-                Price:       types.Float64Value(item.Coffee.Price),
-                Image:       types.StringValue(item.Coffee.Image),
-            },
-            Quantity: types.Int64Value(int64(item.Quantity)),
-        })
-    }
-    plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
+	// Generate API request body from plan
+	var hashicupsItems []hashicups.OrderItem
+	for _, item := range plan.Items {
+		hashicupsItems = append(hashicupsItems, hashicups.OrderItem{
+			Coffee: hashicups.Coffee{
+				ID: int(item.Coffee.ID.ValueInt64()),
+			},
+			Quantity: int(item.Quantity.ValueInt64()),
+		})
+	}
 
-    diags = resp.State.Set(ctx, plan)
-    resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() {
-        return
-    }
+	// Update existing order
+	_, err := r.client.UpdateOrder(plan.ID.ValueString(), hashicupsItems)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Updating HashiCups Order",
+			"Could not update order, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	// Fetch updated items from GetOrder as UpdateOrder items are not
+	// populated.
+	order, err := r.client.GetOrder(plan.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading HashiCups Order",
+			"Could not read HashiCups order ID "+plan.ID.ValueString()+": "+err.Error(),
+		)
+		return
+	}
+
+	// Update resource state with updated items and timestamp
+	plan.Items = []orderItemModel{}
+	for _, item := range order.Items {
+		plan.Items = append(plan.Items, orderItemModel{
+			Coffee: orderItemCoffeeModel{
+				ID:          types.Int64Value(int64(item.Coffee.ID)),
+				Name:        types.StringValue(item.Coffee.Name),
+				Teaser:      types.StringValue(item.Coffee.Teaser),
+				Description: types.StringValue(item.Coffee.Description),
+				Price:       types.Float64Value(item.Coffee.Price),
+				Image:       types.StringValue(item.Coffee.Image),
+			},
+			Quantity: types.Int64Value(int64(item.Quantity)),
+		})
+	}
+	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *orderResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
-			var state orderResourceModel
-			diags := req.State.Get(ctx, &state)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-					return
-			}
-	
-			// Delete existing order
-			err := r.client.DeleteOrder(state.ID.ValueString())
-			if err != nil {
-					resp.Diagnostics.AddError(
-							"Error Deleting HashiCups Order",
-							"Could not delete order, unexpected error: "+err.Error(),
-					)
-					return
-			}
+	var state orderResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	
+
+	// Delete existing order
+	err := r.client.DeleteOrder(state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Deleting HashiCups Order",
+			"Could not delete order, unexpected error: "+err.Error(),
+		)
+		return
+	}
+}
+
+func (r *orderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Retrieve import ID and save to id attribute
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
