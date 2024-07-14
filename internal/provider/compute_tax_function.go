@@ -23,6 +23,7 @@ func (f *ComputeTaxFunction) Definition(ctx context.Context, req function.Defini
     resp.Definition = function.Definition{
         Summary:     "Compute tax for coffee",
         Description: "Given a price and tax rate, return the total cost including tax.",
+
         Parameters: []function.Parameter{
             function.Float64Parameter{
                 Name:        "price",

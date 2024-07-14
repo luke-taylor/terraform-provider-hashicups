@@ -40,52 +40,65 @@ func (r *orderResource) Metadata(_ context.Context, req resource.MetadataRequest
 // Schema defines the schema for the resource.
 func (r *orderResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"last_updated": schema.StringAttribute{
-				Computed: true,
-			},
-			"items": schema.ListNestedAttribute{
-				Required: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"quantity": schema.Int64Attribute{
-							Required: true,
-						},
-						"coffee": schema.SingleNestedAttribute{
-							Required: true,
-							Attributes: map[string]schema.Attribute{
-								"id": schema.Int64Attribute{
-									Required: true,
-								},
-								"name": schema.StringAttribute{
-									Computed: true,
-								},
-								"teaser": schema.StringAttribute{
-									Computed: true,
-								},
-								"description": schema.StringAttribute{
-									Computed: true,
-								},
-								"price": schema.Float64Attribute{
-									Computed: true,
-								},
-								"image": schema.StringAttribute{
-									Computed: true,
-								},
+			Description: "Manages an order.",
+			Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+							Description: "Numeric identifier of the order.",
+							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
 							},
-						},
 					},
-				},
+					"last_updated": schema.StringAttribute{
+							Description: "Timestamp of the last Terraform update of the order.",
+							Computed:    true,
+					},
+					"items": schema.ListNestedAttribute{
+							Description: "List of items in the order.",
+							Required:    true,
+							NestedObject: schema.NestedAttributeObject{
+									Attributes: map[string]schema.Attribute{
+											"quantity": schema.Int64Attribute{
+													Description: "Count of this item in the order.",
+													Required:    true,
+											},
+											"coffee": schema.SingleNestedAttribute{
+													Description: "Coffee item in the order.",
+													Required:    true,
+													Attributes: map[string]schema.Attribute{
+															"id": schema.Int64Attribute{
+																	Description: "Numeric identifier of the coffee.",
+																	Required:    true,
+															},
+															"name": schema.StringAttribute{
+																	Description: "Product name of the coffee.",
+																	Computed:    true,
+															},
+															"teaser": schema.StringAttribute{
+																	Description: "Fun tagline for the coffee.",
+																	Computed:    true,
+															},
+															"description": schema.StringAttribute{
+																	Description: "Product description of the coffee.",
+																	Computed:    true,
+															},
+															"price": schema.Float64Attribute{
+																	Description: "Suggested cost of the coffee.",
+																	Computed:    true,
+															},
+															"image": schema.StringAttribute{
+																	Description: "URI for an image of the coffee.",
+																	Computed:    true,
+															},
+													},
+											},
+									},
+							},
+					},
 			},
-		},
 	}
 }
+
 
 // orderResourceModel maps the resource schema data.
 type orderResourceModel struct {
